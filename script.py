@@ -52,17 +52,19 @@ async def watcher(event):
     if text:
         found_configs.extend(CONFIG_REGEX.findall(text))
 
-    # ---- FILE (.npvt یا هر فایل متنی) ----
+    # ---- FILE (.npvt فقط) ----
     if event.message.file:
         try:
-            # دانلود فایل داخل async function
-            with tempfile.NamedTemporaryFile(delete=False) as tmp:
-                file_path = await event.message.download_media(tmp.name)
+            # بررسی نام فایل و پسوند npvt
+            file_name = getattr(event.message.file, 'name', '')
+            if file_name.lower().endswith(".npvt"):
+                with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                    file_path = await event.message.download_media(tmp.name)
 
-            # خواندن فایل به عنوان متن
-            with open(file_path, "r", errors="ignore") as f:
-                content = f.read()
-                found_configs.extend(CONFIG_REGEX.findall(content))
+                # خواندن فایل به عنوان متن
+                with open(file_path, "r", errors="ignore") as f:
+                    content = f.read()
+                    found_configs.extend(CONFIG_REGEX.findall(content))
 
         except Exception:
             pass
