@@ -67,7 +67,7 @@ async def watcher(event):
                 await client.send_file(
                     DEST_CHANNEL,
                     msg.file.id,
-                    caption=file_name + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
+                    caption=(f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
                 )
                 await asyncio.sleep(1)
                 return
@@ -78,7 +78,7 @@ async def watcher(event):
                 await client.send_file(
                     DEST_CHANNEL,
                     file_path,
-                    caption=file_name + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
+                    caption=(f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
                 )
                 await asyncio.sleep(1)
 
