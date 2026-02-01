@@ -32,9 +32,9 @@ FOOTER_VITORY = (
 )
 
 FOOTER_GENERAL = (
+    "🛜 کانفیگ ویتوری\n"
     "✅ تمام اپراتورها\n"
-    "تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥\n"
-    "⚡️@XVPNCOM"
+    "> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"
 )
 
 FOOTER_NPVT = (
@@ -84,7 +84,8 @@ async def watcher(event):
                 await client.send_file(
                     DEST_CHANNEL,
                     msg.file.id,
-                    caption=(f"{FOOTER_NPVT}\n{FOOTER_TEXT}" if FOOTER_TEXT else FOOTER_NPVT)
+                    caption=(f"{FOOTER_NPVT}\n{FOOTER_TEXT}" if FOOTER_TEXT else FOOTER_NPVT),
+                    parse_mode="Markdown"
                 )
                 await asyncio.sleep(1)
                 return
@@ -95,7 +96,8 @@ async def watcher(event):
                 await client.send_file(
                     DEST_CHANNEL,
                     file_path,
-                    caption=(f"{FOOTER_NPVT}\n{FOOTER_TEXT}" if FOOTER_TEXT else FOOTER_NPVT)
+                    caption=(f"{FOOTER_NPVT}\n{FOOTER_TEXT}" if FOOTER_TEXT else FOOTER_NPVT),
+                    parse_mode="Markdown"
                 )
                 await asyncio.sleep(1)
 
@@ -125,23 +127,25 @@ async def watcher(event):
             final_configs.append(final)
 
     for cfg in final_configs:
-        # کانفیگ داخل Code Block
+        # ارسال کانفیگ داخل Code Block
         message = to_code_block(cfg)
-
-        # تعیین فوتر مناسب
-        if "vitory" in cfg.lower():
-            footer_text = FOOTER_VITORY
-        else:
-            footer_text = FOOTER_GENERAL
-
-        # اضافه کردن FOOTER_TEXT عمومی
-        if FOOTER_TEXT:
-            footer_text = f"{footer_text}\n{FOOTER_TEXT}"
-
-        # ارسال پیام: Code Block + فوتر خارج از Code Block (Quote واقعی)
         await client.send_message(
             DEST_CHANNEL,
-            f"{message}\n\n{footer_text}",
+            message,
+            link_preview=False
+        )
+        await asyncio.sleep(1)
+
+        # تعیین فوتر مناسب
+        footer_text = FOOTER_VITORY if "vitory" in cfg.lower() else FOOTER_GENERAL
+        if FOOTER_TEXT:
+            footer_text += f"\n{FOOTER_TEXT}"
+
+        # ارسال فوتر جداگانه با parse_mode Markdown → Quote واقعی
+        await client.send_message(
+            DEST_CHANNEL,
+            footer_text,
+            parse_mode="Markdown",
             link_preview=False
         )
         await asyncio.sleep(1)
