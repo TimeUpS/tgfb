@@ -55,13 +55,17 @@ async def watcher(event):
     if text:
         found_configs.extend(CONFIG_REGEX.findall(text))
 
-    # ---- FILE (.npvt) ----
-    if event.message.file and event.message.file.name.endswith(".npvt"):
+    # ---- FILE (npvt / txt / any text file) ----
+    if event.message.file:
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
-            await event.message.download_media(tmp.name)
-            with open(tmp.name, "r", errors="ignore") as f:
+            file_path = await event.message.download_media(tmp.name)
+
+        try:
+            with open(file_path, "r", errors="ignore") as f:
                 content = f.read()
                 found_configs.extend(CONFIG_REGEX.findall(content))
+        except Exception:
+            pass
 
     # ---- PROCESS & SEND ----
     final_configs = []
