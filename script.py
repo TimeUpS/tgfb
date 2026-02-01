@@ -33,6 +33,7 @@ FOOTER_GENERAL = """🛜 کانفیگ ویتوری
 ✅ تمام اپراتورها
 > تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
 
+
 FOOTER_NPVT = """🛜 کانفیگ نپسترنت
 ✅ تمام اپراتورها
 > تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
@@ -65,6 +66,10 @@ def to_code_block(text: str) -> str:
 {text}
 ```"""
 
+def escape_footer(text: str) -> str:
+    # escape < and > for Telegram Markdown outside Code Block
+    return text.replace("<", "\u003c").replace(">", "\u003e")
+
 # ===== WATCHER =====
 @client.on(events.NewMessage(chats=SOURCE_CHANNELS))
 async def watcher(event):
@@ -77,14 +82,14 @@ async def watcher(event):
         file_name = getattr(msg.file, "name", "")
         if file_name and ".npvt" in file_name.lower():
             try:
-                caption = FOOTER_NPVT
+                caption = escape_footer(FOOTER_NPVT)
                 if FOOTER_TEXT:
-                    caption += f"\n{FOOTER_TEXT}"
+                    caption += f"\n{escape_footer(FOOTER_TEXT)}"
                 await client.send_file(
                     DEST_CHANNEL,
                     msg.file.id,
                     caption=caption,
-                    parse_mode=None,  # ← بدون parse_mode
+                    parse_mode="Markdown",  # ← parse_mode برای Quote واقعی
                 )
                 await asyncio.sleep(1)
                 return
@@ -96,7 +101,7 @@ async def watcher(event):
                     DEST_CHANNEL,
                     file_path,
                     caption=caption,
-                    parse_mode=None,
+                    parse_mode="Markdown",
                 )
                 await asyncio.sleep(1)
 
@@ -129,19 +134,19 @@ async def watcher(event):
         # کانفیگ داخل Code Block
         cfg_block = to_code_block(cfg)
 
-        # تعیین فوتر مناسب
+        # تعیین فوتر مناسب و escape
         footer_text = FOOTER_VITORY if "vitory" in cfg.lower() else FOOTER_GENERAL
+        footer_text = escape_footer(footer_text)
         if FOOTER_TEXT:
-            footer_text += f"\n{FOOTER_TEXT}"
+            footer_text += f"\n{escape_footer(FOOTER_TEXT)}"
 
-        # پیام نهایی یکپارچه: Code Block + فوتر Quote واقعی
-        final_message = f"""{cfg_block}
-{footer_text}"""
+        # پیام نهایی: Code Block + فوتر Quote واقعی
+        final_message = f"{cfg_block}\n{footer_text}"
 
         await client.send_message(
             DEST_CHANNEL,
             final_message,
-            parse_mode=None,  # ← بدون parse_mode
+            parse_mode="Markdown",  # ← Markdown برای Quote واقعی
             link_preview=False
         )
         await asyncio.sleep(1)
