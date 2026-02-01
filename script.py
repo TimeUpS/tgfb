@@ -37,3 +37,4 @@ def change_vmess_remark(link: str) -> str | None:
         new_b64 = base64.b64encode(new_json.encode()).decode()
         return "vmess://" + new_b64
     except Exception:
+        pass
