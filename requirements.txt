@@ -1,1 +1,4 @@
 telethon
+fastapi
+uvicorn
+nest_asyncio
