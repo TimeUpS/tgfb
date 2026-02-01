@@ -67,7 +67,7 @@ async def watcher(event):
                 await client.send_file(
                     DEST_CHANNEL,
                     msg.file.id,
-                    caption="🛜 کانفیگ نپسترنت" + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
+                    caption="🛜 کانفیگ نپسترنت" + (f"\n > تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥 \n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
                 )
                 await asyncio.sleep(1)
                 return
@@ -78,7 +78,7 @@ async def watcher(event):
                 await client.send_file(
                     DEST_CHANNEL,
                     file_path,
-                    caption="🛜 کانفیگ نپسترنت" + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
+                    caption="🛜 کانفیگ نپسترنت" + (f"\n > تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥 \n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
                 )
                 await asyncio.sleep(1)
 
@@ -110,7 +110,7 @@ async def watcher(event):
     for cfg in final_configs:
         message = to_code_block(cfg)
         if FOOTER_TEXT:
-            message =f"{message}\n\n 🛜 کانفیگ ویتوری \n\n{FOOTER_TEXT}"
+            message =f"{message}\n\n 🛜 کانفیگ ویتوری \n > تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥 \n{FOOTER_TEXT}"
         await client.send_message(
             DEST_CHANNEL,
             message,
