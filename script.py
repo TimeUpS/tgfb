@@ -5,7 +5,6 @@ import json
 import urllib.parse
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
-import tempfile
 
 # ===== ENV =====
 API_ID = int(os.getenv("API_ID"))
@@ -76,14 +75,20 @@ async def watcher(event):
                 print(f"Error sending file using file.id: {e}")
                 print("Downloading file...")
 
-            # If `file.id` fails, download file to temp and send it
-            with tempfile.NamedTemporaryFile(delete=False) as tmp:
-                file_path = await msg.download_media(tmp.name)
+            # =========================
+            # 2️⃣ Download file with the same name
+            # =========================
+            # مسیر فایل با نام اصلی
+            file_path = f"/path/to/your/directory/{file_name}"
 
+            # دانلود فایل با نام مورد نظر
+            await msg.download_media(file_path)
+
+            # ارسال فایل با نام جدید
             await client.send_file(
                 DEST_CHANNEL,
                 file_path,
-                caption=file_name + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
+                caption=(f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
             )
 
     # =========================
