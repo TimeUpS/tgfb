@@ -67,7 +67,7 @@ async def watcher(event):
                 await client.send_file(
                     DEST_CHANNEL,
                     msg.file.id,
-                    caption=(f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
+                    caption="🛜 کانفیگ نپسترنت" + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
                 )
                 await asyncio.sleep(1)
                 return
@@ -78,7 +78,7 @@ async def watcher(event):
                 await client.send_file(
                     DEST_CHANNEL,
                     file_path,
-                    caption=(f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
+                    caption="🛜 کانفیگ نپسترنت" + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
                 )
                 await asyncio.sleep(1)
 
@@ -100,6 +100,8 @@ async def watcher(event):
             final = change_vless_remark(cfg)
         elif cfg.lower().startswith("vmess://"):
             final = change_vmess_remark(cfg)
+        elif cfg.lower().startswith("trojan://"):
+            final = change_vmess_remark(cfg)
         else:
             continue
         if final:
@@ -108,7 +110,7 @@ async def watcher(event):
     for cfg in final_configs:
         message = to_code_block(cfg)
         if FOOTER_TEXT:
-            message = f"{message}\n\n{FOOTER_TEXT}"
+            message = "🛜 کانفیگ ویتوری" + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
         await client.send_message(
             DEST_CHANNEL,
             message,
