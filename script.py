@@ -4,38 +4,16 @@ import base64
 import json
 import urllib.parse
 import asyncio
-from fastapi import FastAPI
-import uvicorn
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
-import tempfile
-import threading
-import nest_asyncio
 
 # ===== ENV =====
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 STRING_SESSION = os.getenv("STRING_SESSION")
-
-SOURCE_CHANNELS = os.getenv("SOURCE_CHANNELS", "").split(",")
-DEST_CHANNEL = os.getenv("DEST_CHANNEL", "")
-
-FOOTER_TEXT = os.getenv("FOOTER_TEXT", "")
+TEST_CHANNEL = os.getenv("TEST_CHANNEL", "@your_test_channel")
 REMARK_NAME = os.getenv("REMARK_NAME", "TimeUp_VPN")
-KEEP_ALIVE_PORT = int(os.getenv("KEEP_ALIVE_PORT", 8000))
-
-# ===== FOOTERS =====
-FOOTER_VITORY = """🛜 کانفیگ ویتوری
-✅ تمام اپراتورها
-> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
-
-FOOTER_GENERAL = """🛜 کانفیگ ویتوری
-✅ تمام اپراتورها
-> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
-
-FOOTER_NPVT = """🛜 کانفیگ نپسترنت
-✅ تمام اپراتورها
-> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
+FOOTER_TEXT = os.getenv("FOOTER_TEXT", "🔹 کانفیگ تست")
 
 # ===== CLIENT =====
 client = TelegramClient(StringSession(STRING_SESSION), API_ID, API_HASH)
@@ -66,109 +44,62 @@ def to_code_block(text: str) -> str:
 ```"""
 
 def escape_footer_for_one_message(text: str) -> str:
-    # تبدیل < و > به unicode برای جلوگیری از escape خودکار تلگرام
     return text.replace("<", "\u003c").replace(">", "\u003e")
 
+def group_configs(config_list):
+    if not config_list:
+        return None
+    if len(config_list) == 1:
+        return to_code_block(config_list[0])
+    else:
+        quote_block = "\n".join(f"> {c}" for c in config_list)
+        return escape_footer_for_one_message(quote_block)
+
 # ===== WATCHER =====
-@client.on(events.NewMessage(chats=SOURCE_CHANNELS))
+@client.on(events.NewMessage)
 async def watcher(event):
-    msg = event.message
-
-    # =========================
-    # NPVT FILE
-    # =========================
-    if msg.file:
-        file_name = getattr(msg.file, "name", "")
-        if file_name and ".npvt" in file_name.lower():
-            try:
-                caption = escape_footer_for_one_message(FOOTER_NPVT)
-                if FOOTER_TEXT:
-                    caption += f"\n{escape_footer_for_one_message(FOOTER_TEXT)}"
-                await client.send_file(
-                    DEST_CHANNEL,
-                    msg.file.id,
-                    caption=caption,
-                    parse_mode="Markdown",
-                )
-                await asyncio.sleep(1)
-                return
-            except Exception as e:
-                print(f"Error sending file.id: {e}, downloading file...")
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".npvt") as tmp:
-                    file_path = await msg.download_media(tmp.name)
-                await client.send_file(
-                    DEST_CHANNEL,
-                    file_path,
-                    caption=caption,
-                    parse_mode="Markdown",
-                )
-                await asyncio.sleep(1)
-
-    # =========================
-    # VLESS / VMESS / TROJAN
-    # =========================
-    text = msg.text or msg.message
+    text = event.message.text or event.message.message
     if not text:
         return
 
     found_configs = CONFIG_REGEX.findall(text)
-    if not found_configs:
-        return
-
     final_configs = []
-    for cfg in set(found_configs):
+
+    for cfg in dict.fromkeys(found_configs):
         cfg = cfg.strip()
         if cfg.lower().startswith("vless://"):
-            final = change_vless_remark(cfg)
+            cfg = change_vless_remark(cfg)
         elif cfg.lower().startswith("vmess://"):
-            final = change_vmess_remark(cfg)
+            cfg = change_vmess_remark(cfg)
         elif cfg.lower().startswith("trojan://"):
-            final = cfg  # بدون تغییر Remark برای Trojan
+            pass
         else:
             continue
-        if final:
-            final_configs.append(final)
+        if cfg:
+            final_configs.append(cfg)
 
-    for cfg in final_configs:
-        # کانفیگ داخل Code Block
-        cfg_block = to_code_block(cfg)
-
-        # تعیین فوتر مناسب و escape
-        footer_text = FOOTER_VITORY if "vitory" in cfg.lower() else FOOTER_GENERAL
-        footer_text = escape_footer_for_one_message(footer_text)
-        if FOOTER_TEXT:
-            footer_text += f"\n{escape_footer_for_one_message(FOOTER_TEXT)}"
-
-        # پیام نهایی: Code Block + فوتر Quote واقعی
-        final_message = f"{cfg_block}\n{footer_text}"
+    final_message = group_configs(final_configs)
+    if final_message:
+        if final_message.startswith(">"):
+            # چندتایی → Collapse Quote + Footer
+            footer = escape_footer_for_one_message(FOOTER_TEXT)
+            final_message += f"\n\n{footer}"
+        else:
+            # تک کانفیگ → Code Block + Footer
+            final_message += f"\n\n{FOOTER_TEXT}"
 
         await client.send_message(
-            DEST_CHANNEL,
+            TEST_CHANNEL,
             final_message,
-            parse_mode="Markdown",  # ← Markdown برای Quote واقعی
+            parse_mode="Markdown",
             link_preview=False
         )
         await asyncio.sleep(1)
 
-# ===== FASTAPI KEEP-ALIVE =====
-app = FastAPI()
-
-@app.get("/ping")
-async def ping():
-    return {"status": "ok"}
-
 # ===== RUN =====
 async def main():
     await client.start()
-    print("NPVT + CONFIG watcher is running...")
-
-    nest_asyncio.apply()
-
-    def run_fastapi():
-        uvicorn.run(app, host="0.0.0.0", port=KEEP_ALIVE_PORT)
-
-    threading.Thread(target=run_fastapi, daemon=True).start()
-
+    print("Grouped config tester is running...")
     await client.run_until_disconnected()
 
 client.loop.run_until_complete(main())
