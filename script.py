@@ -110,7 +110,7 @@ async def watcher(event):
     for cfg in final_configs:
         message = to_code_block(cfg)
         if FOOTER_TEXT:
-            message = "🛜 کانفیگ ویتوری" + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
+            message =f"{message}\n\n 🛜 کانفیگ ویتوری \n\n{FOOTER_TEXT}"
         await client.send_message(
             DEST_CHANNEL,
             message,
