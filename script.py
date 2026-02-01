@@ -3,6 +3,7 @@ import re
 import base64
 import json
 import urllib.parse
+import asyncio  # برای delay
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 
@@ -62,34 +63,30 @@ async def watcher(event):
         if file_name and ".npvt" in file_name.lower():
             print("NPVT FILE → SEND using file.id")
 
-            # Check if file.id is available and valid
+            # ارسال با file.id
             try:
-                # Try sending with file.id directly
                 await client.send_file(
                     DEST_CHANNEL,
-                    msg.file.id,   # ⚡ ارسال با file.id
+                    msg.file.id,
                     caption=file_name + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
                 )
-                return  # If successful, exit here
+                await asyncio.sleep(1)  # ⬅️ delay بعد از ارسال
+                return
             except Exception as e:
                 print(f"Error sending file using file.id: {e}")
                 print("Downloading file...")
 
-            # =========================
-            # 2️⃣ Download file with the same name
-            # =========================
-            # مسیر فایل با نام اصلی
-            file_path = f"/path/to/your/directory/{file_name}"
+            # دانلود فایل با نام اصلی
+            import tempfile
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".npvt") as tmp:
+                file_path = await msg.download_media(tmp.name)
 
-            # دانلود فایل با نام مورد نظر
-            await msg.download_media(file_path)
-
-            # ارسال فایل با نام جدید
             await client.send_file(
                 DEST_CHANNEL,
                 file_path,
-                caption=(f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
+                caption=file_name + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
             )
+            await asyncio.sleep(1)  # ⬅️ delay بعد از ارسال
 
     # =========================
     # 2️⃣ VLESS / VMESS TEXT (Code Block + Rename Remark)
@@ -126,6 +123,7 @@ async def watcher(event):
             message,
             link_preview=False
         )
+        await asyncio.sleep(1)  # ⬅️ delay بعد از هر کانفیگ
 
 # ===== RUN =====
 async def main():
