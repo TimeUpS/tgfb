@@ -5,6 +5,7 @@ import json
 import urllib.parse
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
+import tempfile
 
 # ===== ENV =====
 API_ID = int(os.getenv("API_ID"))
@@ -53,7 +54,7 @@ async def watcher(event):
     msg = event.message
 
     # =========================
-    # 1️⃣ NPVT FILE (send using file.id)
+    # 1️⃣ NPVT FILE (send using file.id or download)
     # =========================
     if msg.file:
         file_name = getattr(msg.file, "name", "")
@@ -61,14 +62,28 @@ async def watcher(event):
 
         if file_name and ".npvt" in file_name.lower():
             print("NPVT FILE → SEND using file.id")
-            caption_text = file_name
-            if FOOTER_TEXT:
-                caption_text = f"{file_name}\n\n{FOOTER_TEXT}"
+
+            # Check if file.id is available and valid
+            try:
+                # Try sending with file.id directly
+                await client.send_file(
+                    DEST_CHANNEL,
+                    msg.file.id,   # ⚡ ارسال با file.id
+                    caption=file_name + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
+                )
+                return  # If successful, exit here
+            except Exception as e:
+                print(f"Error sending file using file.id: {e}")
+                print("Downloading file...")
+
+            # If `file.id` fails, download file to temp and send it
+            with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                file_path = await msg.download_media(tmp.name)
 
             await client.send_file(
                 DEST_CHANNEL,
-                msg.file.id,   # ⚡ ارسال با file.id
-                caption=caption_text
+                file_path,
+                caption=file_name + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
             )
 
     # =========================
