@@ -116,7 +116,7 @@ async def watcher(event):
 ✅ تمام اپراتورها
 > تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
         if FOOTER_TEXT:
-            message =f"{message}\n {FOOTER_V2RAY} \n{FOOTER_TEXT}"
+            message =f"{message}\n{FOOTER_V2RAY}\n{FOOTER_TEXT}"
         await client.send_message(
             DEST_CHANNEL,
             message,
