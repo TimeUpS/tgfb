@@ -25,23 +25,17 @@ REMARK_NAME = os.getenv("REMARK_NAME", "TimeUp_VPN")
 KEEP_ALIVE_PORT = int(os.getenv("KEEP_ALIVE_PORT", 8000))
 
 # ===== FOOTERS =====
-FOOTER_VITORY = (
-    "🛜 کانفیگ ویتوری\n"
-    "✅ تمام اپراتورها\n"
-    "> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"
-)
+FOOTER_VITORY = """🛜 کانفیگ ویتوری
+✅ تمام اپراتورها
+> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
 
-FOOTER_GENERAL = (
-    "🛜 کانفیگ ویتوری\n"
-    "✅ تمام اپراتورها\n"
-    "> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"
-)
+FOOTER_GENERAL = """✅ تمام اپراتورها
+تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥
+⚡️@XVPNCOM"""
 
-FOOTER_NPVT = (
-    "🛜 کانفیگ نپسترنت\n"
-    "✅ تمام اپراتورها\n"
-    "> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"
-)
+FOOTER_NPVT = """🛜 کانفیگ نپسترنت
+✅ تمام اپراتورها
+> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
 
 # ===== CLIENT =====
 client = TelegramClient(StringSession(STRING_SESSION), API_ID, API_HASH)
@@ -67,7 +61,9 @@ def change_vmess_remark(link: str):
         return None
 
 def to_code_block(text: str) -> str:
-    return f"```\n{text}\n```"
+    return f"""```
+{text}
+```"""
 
 # ===== WATCHER =====
 @client.on(events.NewMessage(chats=SOURCE_CHANNELS))
@@ -88,7 +84,7 @@ async def watcher(event):
                     DEST_CHANNEL,
                     msg.file.id,
                     caption=caption,
-                    parse_mode="md",  # ← اصلاح شد
+                    parse_mode=None,  # ← بدون parse_mode
                 )
                 await asyncio.sleep(1)
                 return
@@ -100,7 +96,7 @@ async def watcher(event):
                     DEST_CHANNEL,
                     file_path,
                     caption=caption,
-                    parse_mode="md",
+                    parse_mode=None,
                 )
                 await asyncio.sleep(1)
 
@@ -139,12 +135,13 @@ async def watcher(event):
             footer_text += f"\n{FOOTER_TEXT}"
 
         # پیام نهایی یکپارچه: Code Block + فوتر Quote واقعی
-        final_message = f"{cfg_block}\n{footer_text}"
+        final_message = f"""{cfg_block}
+{footer_text}"""
 
         await client.send_message(
             DEST_CHANNEL,
             final_message,
-            parse_mode="md",  # ← اصلاح شد
+            parse_mode=None,  # ← بدون parse_mode
             link_preview=False
         )
         await asyncio.sleep(1)
@@ -158,11 +155,9 @@ async def ping():
 
 # ===== RUN =====
 async def main():
-    # ران کردن Telethon
     await client.start()
     print("NPVT + CONFIG watcher is running...")
 
-    # ران کردن FastAPI در یک تسک جداگانه
     nest_asyncio.apply()
 
     def run_fastapi():
@@ -170,7 +165,6 @@ async def main():
 
     threading.Thread(target=run_fastapi, daemon=True).start()
 
-    # بات تلگرام تا زمانی که قطع نشود ران بماند
     await client.run_until_disconnected()
 
 client.loop.run_until_complete(main())
