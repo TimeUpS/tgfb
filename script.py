@@ -37,7 +37,7 @@ def change_vmess_remark(link: str) -> str | None:
         new_b64 = base64.b64encode(new_json.encode()).decode()
         return "vmess://" + new_b64
     except Exception:
-        pass  # ⚠️ حتماً pass بگذاریم
+        pass
 
 def to_code_block(text: str) -> str:
     return f"```\n{text}\n```"
@@ -52,16 +52,21 @@ async def watcher(event):
     if text:
         found_configs.extend(CONFIG_REGEX.findall(text))
 
-    # ---- FILE (npvt / txt / any text file) ----
+    # ---- FILE (.npvt) ----
     if event.message.file:
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
-            try:
-                file_path = await event.message.download_media(tmp.name)
-                with open(file_path, "r", errors="ignore") as f:
-                    content = f.read()
-                    found_configs.extend(CONFIG_REGEX.findall(content))
-            except Exception:
-                pass  # ⚠️ حتماً pass بگذاریم
+        try:
+            # بررسی پسوند .npvt فقط (اگر اسم فایل موجود باشد)
+            file_name = getattr(event.message.file, 'name', '')
+            if file_name.lower().endswith(".npvt"):
+                with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                    file_path = await event.message.download_media(tmp.name)
+
+                    # خواندن فایل به عنوان متن
+                    with open(file_path, "r", errors="ignore") as f:
+                        content = f.read()
+                        found_configs.extend(CONFIG_REGEX.findall(content))
+        except Exception:
+            pass
 
     # ---- PROCESS & SEND ----
     final_configs = []
