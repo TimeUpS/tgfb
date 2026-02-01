@@ -1,35 +1,122 @@
+import os
+import re
+import tempfile
+import base64
+import json
+import urllib.parse
+
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
-import os
 
+# ===== ENV =====
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 STRING_SESSION = os.getenv("STRING_SESSION")
+
 SOURCE_CHANNELS = os.getenv("SOURCE_CHANNELS").split(",")
+DEST_CHANNEL = os.getenv("DEST_CHANNEL")
 
-client = TelegramClient(StringSession(STRING_SESSION), API_ID, API_HASH)
+REMARK_NAME = os.getenv("REMARK_NAME", "TimeUp_VPN")
+FOOTER_TEXT = os.getenv("FOOTER_TEXT", "")
 
+# ===== CLIENT =====
+client = TelegramClient(
+    StringSession(STRING_SESSION),
+    API_ID,
+    API_HASH
+)
+
+# ===== REGEX =====
+CONFIG_REGEX = re.compile(r"(?:vless|vmess)://[^\s]+", re.IGNORECASE)
+
+# ===== HELPERS =====
+def change_vless_remark(link: str) -> str:
+    base = link.split("#", 1)[0]
+    return base + "#" + urllib.parse.quote(REMARK_NAME)
+
+
+def change_vmess_remark(link: str):
+    try:
+        raw = link.replace("vmess://", "")
+        decoded = base64.b64decode(raw + "==").decode()
+        data = json.loads(decoded)
+
+        data["ps"] = REMARK_NAME
+
+        new_json = json.dumps(data, separators=(",", ":"))
+        new_b64 = base64.b64encode(new_json.encode()).decode()
+        return "vmess://" + new_b64
+    except Exception:
+        return None
+
+
+def to_code_block(text: str) -> str:
+    return f"```\n{text}\n```"
+
+
+# ===== WATCHER =====
 @client.on(events.NewMessage(chats=SOURCE_CHANNELS))
-async def debug_file(event):
-    print("\n===== NEW MESSAGE =====")
+async def watcher(event):
+    found_configs = []
 
-    msg = event.message
+    # ---- TEXT / CAPTION ----
+    text = event.message.text or event.message.message
+    if text:
+        found_configs.extend(CONFIG_REGEX.findall(text))
 
-    print("has file:", bool(msg.file))
+    # ---- FILE (.npvt واقعی بر اساس name) ----
+    if event.message.file:
+        try:
+            file_name = getattr(event.message.file, "name", "")
+            # DEBUG اختیاری:
+            # print("FILE NAME:", file_name)
 
-    if msg.file:
-        f = msg.file
-        print("file.name     :", repr(getattr(f, "name", None)))
-        print("file.ext      :", repr(getattr(f, "ext", None)))
-        print("file.mime     :", repr(getattr(f, "mime_type", None)))
-        print("file.size     :", repr(getattr(f, "size", None)))
-        print("file.id       :", repr(getattr(f, "id", None)))
-    else:
-        print("NO FILE OBJECT")
+            if file_name and ".npvt" in file_name.lower():
+                with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                    file_path = await event.message.download_media(tmp.name)
 
+                with open(file_path, "r", errors="ignore") as f:
+                    content = f.read()
+                    found_configs.extend(CONFIG_REGEX.findall(content))
+
+        except Exception as e:
+            print("FILE ERROR:", e)
+
+    # ---- PROCESS ----
+    final_configs = []
+
+    for cfg in set(found_configs):
+        cfg = cfg.strip()
+
+        if cfg.lower().startswith("vless://"):
+            final = change_vless_remark(cfg)
+        elif cfg.lower().startswith("vmess://"):
+            final = change_vmess_remark(cfg)
+        else:
+            continue
+
+        if final:
+            final_configs.append(final)
+
+    # ---- SEND ----
+    for cfg in final_configs:
+        message = to_code_block(cfg)
+
+        if FOOTER_TEXT:
+            message = f"{message}\n\n{FOOTER_TEXT}"
+
+        await client.send_message(
+            DEST_CHANNEL,
+            message,
+            link_preview=False,
+            parse_mode="markdown"
+        )
+
+
+# ===== RUN =====
 async def main():
     await client.start()
-    print("DEBUG BOT RUNNING...")
+    print("Userbot is running...")
     await client.run_until_disconnected()
 
 client.loop.run_until_complete(main())
