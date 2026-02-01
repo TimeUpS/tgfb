@@ -9,28 +9,39 @@ import uvicorn
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 import tempfile
+import threading
+import nest_asyncio
 
 # ===== ENV =====
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 STRING_SESSION = os.getenv("STRING_SESSION")
 
-SOURCE_CHANNELS = os.getenv("SOURCE_CHANNELS").split(",")
-DEST_CHANNEL = os.getenv("DEST_CHANNEL")
+SOURCE_CHANNELS = os.getenv("SOURCE_CHANNELS", "").split(",")
+DEST_CHANNEL = os.getenv("DEST_CHANNEL", "")
 
 FOOTER_TEXT = os.getenv("FOOTER_TEXT", "")
 REMARK_NAME = os.getenv("REMARK_NAME", "TimeUp_VPN")
 KEEP_ALIVE_PORT = int(os.getenv("KEEP_ALIVE_PORT", 8000))
 
+# ===== FOOTERS =====
+FOOTER_VITORY = """🛜 کانفیگ ویتوری
+✅ تمام اپراتورها
+> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
+
+FOOTER_GENERAL = """✅ تمام اپراتورها
+تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥
+⚡️@XVPNCOM"""
+
+FOOTER_NPVT = """🛜 کانفیگ نپسترنت
+✅ تمام اپراتورها
+> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
+
 # ===== CLIENT =====
-client = TelegramClient(
-    StringSession(STRING_SESSION),
-    API_ID,
-    API_HASH
-)
+client = TelegramClient(StringSession(STRING_SESSION), API_ID, API_HASH)
 
 # ===== REGEX =====
-CONFIG_REGEX = re.compile(r"(?:vless|vmess)://[^\s]+", re.IGNORECASE)
+CONFIG_REGEX = re.compile(r"(?:vless|vmess|trojan)://[^\s]+", re.IGNORECASE)
 
 # ===== HELPERS =====
 def change_vless_remark(link: str) -> str:
@@ -62,15 +73,12 @@ async def watcher(event):
     # =========================
     if msg.file:
         file_name = getattr(msg.file, "name", "")
-        FOOTER_NPVT = """🛜 کانفیگ نپسترنت
-✅ تمام اپراتورها
-> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
         if file_name and ".npvt" in file_name.lower():
             try:
                 await client.send_file(
                     DEST_CHANNEL,
                     msg.file.id,
-                    caption=(f"\n{FOOTER_NPVT}\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
+                    caption=(f"{FOOTER_NPVT}\n{FOOTER_TEXT}" if FOOTER_TEXT else FOOTER_NPVT)
                 )
                 await asyncio.sleep(1)
                 return
@@ -81,12 +89,12 @@ async def watcher(event):
                 await client.send_file(
                     DEST_CHANNEL,
                     file_path,
-                    caption=(f"\n{FOOTER_NPVT}\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
+                    caption=(f"{FOOTER_NPVT}\n{FOOTER_TEXT}" if FOOTER_TEXT else FOOTER_NPVT)
                 )
                 await asyncio.sleep(1)
 
     # =========================
-    # VLESS / VMESS
+    # VLESS / VMESS / TROJAN
     # =========================
     text = msg.text or msg.message
     if not text:
@@ -104,7 +112,7 @@ async def watcher(event):
         elif cfg.lower().startswith("vmess://"):
             final = change_vmess_remark(cfg)
         elif cfg.lower().startswith("trojan://"):
-            final = change_vmess_remark(cfg)
+            final = cfg  # بدون تغییر Remark برای Trojan
         else:
             continue
         if final:
@@ -112,11 +120,19 @@ async def watcher(event):
 
     for cfg in final_configs:
         message = to_code_block(cfg)
-         FOOTER_V2RAY = """🛜 کانفیگ ویتوری
-✅ تمام اپراتورها
-> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
+
+        # تعیین فوتر مناسب
+        if "vitory" in cfg.lower():
+            footer_text = FOOTER_VITORY
+        else:
+            footer_text = FOOTER_GENERAL
+
+        # اضافه کردن FOOTER_TEXT عمومی
         if FOOTER_TEXT:
-            message =f"{message}\n{FOOTER_V2RAY}\n{FOOTER_TEXT}"
+            message = f"{message}\n\n{footer_text}\n\n{FOOTER_TEXT}"
+        else:
+            message = f"{message}\n\n{footer_text}"
+
         await client.send_message(
             DEST_CHANNEL,
             message,
@@ -138,9 +154,7 @@ async def main():
     print("NPVT + CONFIG watcher is running...")
 
     # ران کردن FastAPI در یک تسک جداگانه
-    import nest_asyncio
     nest_asyncio.apply()
-    import threading
 
     def run_fastapi():
         uvicorn.run(app, host="0.0.0.0", port=KEEP_ALIVE_PORT)
