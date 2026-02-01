@@ -32,9 +32,9 @@ FOOTER_VITORY = (
 )
 
 FOOTER_GENERAL = (
-    "🛜 کانفیگ ویتوری\n"
     "✅ تمام اپراتورها\n"
-    "> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"
+    "تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥\n"
+    "⚡️@XVPNCOM"
 )
 
 FOOTER_NPVT = (
@@ -69,6 +69,13 @@ def change_vmess_remark(link: str):
 def to_code_block(text: str) -> str:
     return f"```\n{text}\n```"
 
+def escape_markdown_v2(text: str) -> str:
+    # escape special characters for MarkdownV2
+    special_chars = r"\_*[]()~`>#+-=|{}.!":  # all characters to escape
+    for ch in special_chars:
+        text = text.replace(ch, f"\\{ch}")
+    return text
+
 # ===== WATCHER =====
 @client.on(events.NewMessage(chats=SOURCE_CHANNELS))
 async def watcher(event):
@@ -81,11 +88,14 @@ async def watcher(event):
         file_name = getattr(msg.file, "name", "")
         if file_name and ".npvt" in file_name.lower():
             try:
+                caption = FOOTER_NPVT
+                if FOOTER_TEXT:
+                    caption += f"\n{FOOTER_TEXT}"
                 await client.send_file(
                     DEST_CHANNEL,
                     msg.file.id,
-                    caption=(f"{FOOTER_NPVT}\n{FOOTER_TEXT}" if FOOTER_TEXT else FOOTER_NPVT),
-                    parse_mode="Markdown"
+                    caption=caption,
+                    parse_mode="Markdown",
                 )
                 await asyncio.sleep(1)
                 return
@@ -96,8 +106,8 @@ async def watcher(event):
                 await client.send_file(
                     DEST_CHANNEL,
                     file_path,
-                    caption=(f"{FOOTER_NPVT}\n{FOOTER_TEXT}" if FOOTER_TEXT else FOOTER_NPVT),
-                    parse_mode="Markdown"
+                    caption=caption,
+                    parse_mode="Markdown",
                 )
                 await asyncio.sleep(1)
 
@@ -127,25 +137,24 @@ async def watcher(event):
             final_configs.append(final)
 
     for cfg in final_configs:
-        # ارسال کانفیگ داخل Code Block
-        message = to_code_block(cfg)
-        await client.send_message(
-            DEST_CHANNEL,
-            message,
-            link_preview=False
-        )
-        await asyncio.sleep(1)
+        # کانفیگ داخل Code Block
+        cfg_block = to_code_block(cfg)
 
         # تعیین فوتر مناسب
         footer_text = FOOTER_VITORY if "vitory" in cfg.lower() else FOOTER_GENERAL
         if FOOTER_TEXT:
             footer_text += f"\n{FOOTER_TEXT}"
 
-        # ارسال فوتر جداگانه با parse_mode Markdown → Quote واقعی
+        # escape فوتر برای MarkdownV2
+        footer_escaped = escape_markdown_v2(footer_text)
+
+        # پیام نهایی یکپارچه: Code Block + فوتر Quote واقعی
+        final_message = f"{cfg_block}\n{footer_escaped}"
+
         await client.send_message(
             DEST_CHANNEL,
-            footer_text,
-            parse_mode="Markdown",
+            final_message,
+            parse_mode="MarkdownV2",
             link_preview=False
         )
         await asyncio.sleep(1)
