@@ -25,17 +25,23 @@ REMARK_NAME = os.getenv("REMARK_NAME", "TimeUp_VPN")
 KEEP_ALIVE_PORT = int(os.getenv("KEEP_ALIVE_PORT", 8000))
 
 # ===== FOOTERS =====
-FOOTER_VITORY = """🛜 کانفیگ ویتوری
-✅ تمام اپراتورها
-> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
+FOOTER_VITORY = (
+    "🛜 کانفیگ ویتوری\n"
+    "✅ تمام اپراتورها\n"
+    "> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"
+)
 
-FOOTER_GENERAL = """✅ تمام اپراتورها
-تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥
-⚡️@XVPNCOM"""
+FOOTER_GENERAL = (
+    "✅ تمام اپراتورها\n"
+    "تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥\n"
+    "⚡️@XVPNCOM"
+)
 
-FOOTER_NPVT = """🛜 کانفیگ نپسترنت
-✅ تمام اپراتورها
-> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
+FOOTER_NPVT = (
+    "🛜 کانفیگ نپسترنت\n"
+    "✅ تمام اپراتورها\n"
+    "> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"
+)
 
 # ===== CLIENT =====
 client = TelegramClient(StringSession(STRING_SESSION), API_ID, API_HASH)
@@ -119,6 +125,7 @@ async def watcher(event):
             final_configs.append(final)
 
     for cfg in final_configs:
+        # کانفیگ داخل Code Block
         message = to_code_block(cfg)
 
         # تعیین فوتر مناسب
@@ -129,13 +136,12 @@ async def watcher(event):
 
         # اضافه کردن FOOTER_TEXT عمومی
         if FOOTER_TEXT:
-            message = f"{message}\n\n{footer_text}\n\n{FOOTER_TEXT}"
-        else:
-            message = f"{message}\n\n{footer_text}"
+            footer_text = f"{footer_text}\n{FOOTER_TEXT}"
 
+        # ارسال پیام: Code Block + فوتر خارج از Code Block (Quote واقعی)
         await client.send_message(
             DEST_CHANNEL,
-            message,
+            f"{message}\n\n{footer_text}",
             link_preview=False
         )
         await asyncio.sleep(1)
