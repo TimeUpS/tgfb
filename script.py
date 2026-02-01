@@ -33,7 +33,6 @@ FOOTER_GENERAL = """🛜 کانفیگ ویتوری
 ✅ تمام اپراتورها
 > تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
 
-
 FOOTER_NPVT = """🛜 کانفیگ نپسترنت
 ✅ تمام اپراتورها
 > تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
@@ -66,8 +65,8 @@ def to_code_block(text: str) -> str:
 {text}
 ```"""
 
-def escape_footer(text: str) -> str:
-    # escape < and > for Telegram Markdown outside Code Block
+def escape_footer_for_one_message(text: str) -> str:
+    # تبدیل < و > به unicode برای جلوگیری از escape خودکار تلگرام
     return text.replace("<", "\u003c").replace(">", "\u003e")
 
 # ===== WATCHER =====
@@ -82,14 +81,14 @@ async def watcher(event):
         file_name = getattr(msg.file, "name", "")
         if file_name and ".npvt" in file_name.lower():
             try:
-                caption = escape_footer(FOOTER_NPVT)
+                caption = escape_footer_for_one_message(FOOTER_NPVT)
                 if FOOTER_TEXT:
-                    caption += f"\n{escape_footer(FOOTER_TEXT)}"
+                    caption += f"\n{escape_footer_for_one_message(FOOTER_TEXT)}"
                 await client.send_file(
                     DEST_CHANNEL,
                     msg.file.id,
                     caption=caption,
-                    parse_mode="Markdown",  # ← parse_mode برای Quote واقعی
+                    parse_mode="Markdown",
                 )
                 await asyncio.sleep(1)
                 return
@@ -136,9 +135,9 @@ async def watcher(event):
 
         # تعیین فوتر مناسب و escape
         footer_text = FOOTER_VITORY if "vitory" in cfg.lower() else FOOTER_GENERAL
-        footer_text = escape_footer(footer_text)
+        footer_text = escape_footer_for_one_message(footer_text)
         if FOOTER_TEXT:
-            footer_text += f"\n{escape_footer(FOOTER_TEXT)}"
+            footer_text += f"\n{escape_footer_for_one_message(FOOTER_TEXT)}"
 
         # پیام نهایی: Code Block + فوتر Quote واقعی
         final_message = f"{cfg_block}\n{footer_text}"
