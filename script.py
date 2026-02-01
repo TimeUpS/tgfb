@@ -62,12 +62,15 @@ async def watcher(event):
     # =========================
     if msg.file:
         file_name = getattr(msg.file, "name", "")
+        FOOTER_NPVT = """🛜 کانفیگ نپسترنت
+✅ تمام اپراتورها
+> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
         if file_name and ".npvt" in file_name.lower():
             try:
                 await client.send_file(
                     DEST_CHANNEL,
                     msg.file.id,
-                    caption="🛜 کانفیگ نپسترنت" + (f"\n > تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥 \n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
+                    caption=(f"\n{FOOTER_NPVT}\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
                 )
                 await asyncio.sleep(1)
                 return
@@ -78,7 +81,7 @@ async def watcher(event):
                 await client.send_file(
                     DEST_CHANNEL,
                     file_path,
-                    caption="🛜 کانفیگ نپسترنت" + (f"\n > تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥 \n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
+                    caption=(f"\n{FOOTER_NPVT}\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
                 )
                 await asyncio.sleep(1)
 
@@ -109,8 +112,11 @@ async def watcher(event):
 
     for cfg in final_configs:
         message = to_code_block(cfg)
+         FOOTER_V2RAY = """🛜 کانفیگ ویتوری
+✅ تمام اپراتورها
+> تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥"""
         if FOOTER_TEXT:
-            message =f"{message}\n\n 🛜 کانفیگ ویتوری \n > تست کنید اوکی بود شیر کنید واسه دوستاتون❤️‍🔥 \n{FOOTER_TEXT}"
+            message =f"{message}\n {FOOTER_V2RAY} \n{FOOTER_TEXT}"
         await client.send_message(
             DEST_CHANNEL,
             message,
