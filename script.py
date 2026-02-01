@@ -69,13 +69,6 @@ def change_vmess_remark(link: str):
 def to_code_block(text: str) -> str:
     return f"```\n{text}\n```"
 
-def escape_markdown_v2(text: str) -> str:
-    # escape special characters for MarkdownV2
-    special_chars = r"\_*[]()~`>#+-=|{}.!"
-    for ch in special_chars:
-        text = text.replace(ch, f"\\{ch}")
-    return text
-
 # ===== WATCHER =====
 @client.on(events.NewMessage(chats=SOURCE_CHANNELS))
 async def watcher(event):
@@ -95,7 +88,7 @@ async def watcher(event):
                     DEST_CHANNEL,
                     msg.file.id,
                     caption=caption,
-                    parse_mode="Markdown",
+                    parse_mode="md",  # ← اصلاح شد
                 )
                 await asyncio.sleep(1)
                 return
@@ -107,7 +100,7 @@ async def watcher(event):
                     DEST_CHANNEL,
                     file_path,
                     caption=caption,
-                    parse_mode="Markdown",
+                    parse_mode="md",
                 )
                 await asyncio.sleep(1)
 
@@ -145,16 +138,13 @@ async def watcher(event):
         if FOOTER_TEXT:
             footer_text += f"\n{FOOTER_TEXT}"
 
-        # escape فوتر برای MarkdownV2
-        footer_escaped = escape_markdown_v2(footer_text)
-
         # پیام نهایی یکپارچه: Code Block + فوتر Quote واقعی
-        final_message = f"{cfg_block}\n{footer_escaped}"
+        final_message = f"{cfg_block}\n{footer_text}"
 
         await client.send_message(
             DEST_CHANNEL,
             final_message,
-            parse_mode="MarkdownV2",
+            parse_mode="md",  # ← اصلاح شد
             link_preview=False
         )
         await asyncio.sleep(1)
