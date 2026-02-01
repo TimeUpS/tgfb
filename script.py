@@ -37,4 +37,65 @@ def change_vmess_remark(link: str) -> str | None:
         new_b64 = base64.b64encode(new_json.encode()).decode()
         return "vmess://" + new_b64
     except Exception:
-        pass
+        pass  # ⚠️ حتماً pass بگذاریم
+
+def to_code_block(text: str) -> str:
+    return f"```\n{text}\n```"
+
+# ===== WATCHER =====
+@client.on(events.NewMessage(chats=SOURCE_CHANNELS))
+async def watcher(event):
+    found_configs = []
+
+    # ---- TEXT / CAPTION ----
+    text = event.message.text or event.message.message
+    if text:
+        found_configs.extend(CONFIG_REGEX.findall(text))
+
+    # ---- FILE (npvt / txt / any text file) ----
+    if event.message.file:
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            try:
+                file_path = await event.message.download_media(tmp.name)
+                with open(file_path, "r", errors="ignore") as f:
+                    content = f.read()
+                    found_configs.extend(CONFIG_REGEX.findall(content))
+            except Exception:
+                pass  # ⚠️ حتماً pass بگذاریم
+
+    # ---- PROCESS & SEND ----
+    final_configs = []
+
+    for cfg in set(found_configs):
+        cfg = cfg.strip()
+
+        if cfg.lower().startswith("vless://"):
+            final = change_vless_remark(cfg)
+        elif cfg.lower().startswith("vmess://"):
+            final = change_vmess_remark(cfg)
+        else:
+            continue
+
+        if final:
+            final_configs.append(final)
+
+    for cfg in final_configs:
+        message = to_code_block(cfg)
+
+        if FOOTER_TEXT:
+            message = f"{message}\n\n{FOOTER_TEXT}"
+
+        await client.send_message(
+            DEST_CHANNEL,
+            message,
+            link_preview=False,
+            parse_mode="markdown"
+        )
+
+# ===== RUN =====
+async def main():
+    await client.start()
+    print("Userbot is running...")
+    await client.run_until_disconnected()
+
+client.loop.run_until_complete(main())
