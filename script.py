@@ -53,7 +53,7 @@ async def watcher(event):
         found_configs.extend(CONFIG_REGEX.findall(text))
 
     # ---- FILE (.npvt یا هر فایل متنی) ----
-    if event.message.file:
+if event.message.file:
     try:
         # دانلود فایل داخل async function
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
