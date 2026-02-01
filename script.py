@@ -10,22 +10,24 @@ PHONE = os.getenv("PHONE_NUMBER")
 
 SOURCE_CHANNELS = os.getenv("SOURCE_CHANNELS").split(",")
 DEST_CHANNEL = os.getenv("DEST_CHANNEL")
-FOOTER_TEXT = os.getenv("FOOTER_TEXT", "")
 
 # ===== CLIENT =====
 client = TelegramClient("session", API_ID, API_HASH)
 
-# ===== REGEX =====
-CONFIG_REGEX = re.compile(r"(vless://|vmess://)", re.IGNORECASE)
+# ===== REGEX (FULL LINKS) =====
+CONFIG_REGEX = re.compile(
+    r'(?:vless|vmess)://[^\s]+',
+    re.IGNORECASE
+)
 
 @client.on(events.NewMessage(chats=SOURCE_CHANNELS))
 async def watcher(event):
-    text_to_send = None
+    found_configs = []
 
-    # ---- TEXT ----
-    if event.message.text:
-        if CONFIG_REGEX.search(event.message.text):
-            text_to_send = event.message.text
+    # ---- TEXT OR CAPTION ----
+    text = event.message.text or event.message.message
+    if text:
+        found_configs.extend(CONFIG_REGEX.findall(text))
 
     # ---- FILE (.npvt) ----
     if event.message.file and event.message.file.name.endswith(".npvt"):
@@ -33,15 +35,13 @@ async def watcher(event):
             await event.message.download_media(tmp.name)
             with open(tmp.name, "r", errors="ignore") as f:
                 content = f.read()
-                if CONFIG_REGEX.search(content):
-                    text_to_send = content
+                found_configs.extend(CONFIG_REGEX.findall(content))
 
-    # ---- SEND ----
-    if text_to_send:
-        final_text = f"{text_to_send}\n\n{FOOTER_TEXT}".strip()
+    # ---- SEND ONLY LINKS ----
+    for cfg in set(found_configs):  # set => جلوگیری از تکراری
         await client.send_message(
             DEST_CHANNEL,
-            final_text,
+            cfg,
             link_preview=False
         )
 
