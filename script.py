@@ -53,18 +53,22 @@ async def watcher(event):
     msg = event.message
 
     # =========================
-    # 1️⃣ NPVT FILE (re-upload)
+    # 1️⃣ NPVT FILE (send using file.id)
     # =========================
     if msg.file:
         file_name = getattr(msg.file, "name", "")
         print("FILE RECEIVED:", file_name)
 
         if file_name and ".npvt" in file_name.lower():
-            print("NPVT FILE → SEND")
+            print("NPVT FILE → SEND using file.id")
+            caption_text = file_name
+            if FOOTER_TEXT:
+                caption_text = f"{file_name}\n\n{FOOTER_TEXT}"
+
             await client.send_file(
                 DEST_CHANNEL,
-                msg.file,
-                caption=file_name  # اختیاری
+                msg.file.id,   # ⚡ ارسال با file.id
+                caption=caption_text
             )
 
     # =========================
