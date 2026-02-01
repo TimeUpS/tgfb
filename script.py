@@ -3,9 +3,12 @@ import re
 import base64
 import json
 import urllib.parse
-import asyncio  # برای delay
+import asyncio
+from fastapi import FastAPI
+import uvicorn
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
+import tempfile
 
 # ===== ENV =====
 API_ID = int(os.getenv("API_ID"))
@@ -17,6 +20,7 @@ DEST_CHANNEL = os.getenv("DEST_CHANNEL")
 
 FOOTER_TEXT = os.getenv("FOOTER_TEXT", "")
 REMARK_NAME = os.getenv("REMARK_NAME", "TimeUp_VPN")
+KEEP_ALIVE_PORT = int(os.getenv("KEEP_ALIVE_PORT", 8000))
 
 # ===== CLIENT =====
 client = TelegramClient(
@@ -54,42 +58,32 @@ async def watcher(event):
     msg = event.message
 
     # =========================
-    # 1️⃣ NPVT FILE (send using file.id or download)
+    # NPVT FILE
     # =========================
     if msg.file:
         file_name = getattr(msg.file, "name", "")
-        print("FILE RECEIVED:", file_name)
-
         if file_name and ".npvt" in file_name.lower():
-            print("NPVT FILE → SEND using file.id")
-
-            # ارسال با file.id
             try:
                 await client.send_file(
                     DEST_CHANNEL,
                     msg.file.id,
                     caption=file_name + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
                 )
-                await asyncio.sleep(1)  # ⬅️ delay بعد از ارسال
+                await asyncio.sleep(1)
                 return
             except Exception as e:
-                print(f"Error sending file using file.id: {e}")
-                print("Downloading file...")
-
-            # دانلود فایل با نام اصلی
-            import tempfile
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".npvt") as tmp:
-                file_path = await msg.download_media(tmp.name)
-
-            await client.send_file(
-                DEST_CHANNEL,
-                file_path,
-                caption=file_name + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
-            )
-            await asyncio.sleep(1)  # ⬅️ delay بعد از ارسال
+                print(f"Error sending file.id: {e}, downloading file...")
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".npvt") as tmp:
+                    file_path = await msg.download_media(tmp.name)
+                await client.send_file(
+                    DEST_CHANNEL,
+                    file_path,
+                    caption=file_name + (f"\n\n{FOOTER_TEXT}" if FOOTER_TEXT else "")
+                )
+                await asyncio.sleep(1)
 
     # =========================
-    # 2️⃣ VLESS / VMESS TEXT (Code Block + Rename Remark)
+    # VLESS / VMESS
     # =========================
     text = msg.text or msg.message
     if not text:
@@ -100,7 +94,6 @@ async def watcher(event):
         return
 
     final_configs = []
-
     for cfg in set(found_configs):
         cfg = cfg.strip()
         if cfg.lower().startswith("vless://"):
@@ -109,7 +102,6 @@ async def watcher(event):
             final = change_vmess_remark(cfg)
         else:
             continue
-
         if final:
             final_configs.append(final)
 
@@ -117,18 +109,37 @@ async def watcher(event):
         message = to_code_block(cfg)
         if FOOTER_TEXT:
             message = f"{message}\n\n{FOOTER_TEXT}"
-
         await client.send_message(
             DEST_CHANNEL,
             message,
             link_preview=False
         )
-        await asyncio.sleep(1)  # ⬅️ delay بعد از هر کانفیگ
+        await asyncio.sleep(1)
+
+# ===== FASTAPI KEEP-ALIVE =====
+app = FastAPI()
+
+@app.get("/ping")
+async def ping():
+    return {"status": "ok"}
 
 # ===== RUN =====
 async def main():
+    # ران کردن Telethon
     await client.start()
     print("NPVT + CONFIG watcher is running...")
+
+    # ران کردن FastAPI در یک تسک جداگانه
+    import nest_asyncio
+    nest_asyncio.apply()
+    import threading
+
+    def run_fastapi():
+        uvicorn.run(app, host="0.0.0.0", port=KEEP_ALIVE_PORT)
+
+    threading.Thread(target=run_fastapi, daemon=True).start()
+
+    # بات تلگرام تا زمانی که قطع نشود ران بماند
     await client.run_until_disconnected()
 
 client.loop.run_until_complete(main())
