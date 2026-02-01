@@ -71,7 +71,7 @@ def to_code_block(text: str) -> str:
 
 def escape_markdown_v2(text: str) -> str:
     # escape special characters for MarkdownV2
-    special_chars = r"\_*[]()~`>#+-=|{}.!":  # all characters to escape
+    special_chars = r"\_*[]()~`>#+-=|{}.!"
     for ch in special_chars:
         text = text.replace(ch, f"\\{ch}")
     return text
